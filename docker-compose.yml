@@ -1,0 +1,55 @@
+version: '3'
+services:
+  db:
+    image: postgres:12.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    build:
+      context: ./docker
+      dockerfile: db.Dockerfile
+    container_name: db
+    ports:
+      - "5432"
+    volumes:
+      - /var/lib/postgresql/data
+    networks:
+      - only721-network
+  redis:
+    image: "redis:alpine"
+    command: redis-server
+    volumes:
+      - './redis:/data'
+    networks:
+      - only721-network
+  backend:
+    build:
+      context: only721-api
+      args:
+        UID: ${UID:-1001}
+    container_name: backend
+    volumes:
+      - ./only721-api:/var/lib/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - only721-network
+    user: rails
+  frontend:
+    build:
+      context: only721-web
+      args:
+        UID: ${UID:-1001}
+    volumes:
+      - ./only721-web:/var/lib/app
+    ports:
+      - "5000:5000"
+    user: frontend
+
+networks:
+  only721-network:
+    driver: bridge
